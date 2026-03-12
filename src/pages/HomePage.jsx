@@ -115,10 +115,10 @@ export default function HomePage() {
           <div className="grid gap-4 md:grid-cols-2">
             {featured.map((item, index) => (
               <Link
-                key={`${item.image}-${index}`}
-                to={`/subject/${item.subject}`}
-                className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] text-left"
-              >
+  key={`${item.image}-${index}`}
+  to="/archive"
+  className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] text-left"
+>
                 <img
                   src={item.image}
                   alt={item.title}
