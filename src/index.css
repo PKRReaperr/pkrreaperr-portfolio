@@ -61,3 +61,24 @@ img {
 .hero-font {
   font-family: "Space Grotesk", sans-serif;
 }
+
+@keyframes flicker {
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 0.14; }
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.03) 0%,
+    rgba(255,255,255,0.01) 50%,
+    rgba(0,0,0,0.06) 100%
+  );
+  mix-blend-mode: soft-light;
+  animation: flicker 0.18s infinite;
+}
