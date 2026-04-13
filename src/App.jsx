@@ -423,7 +423,7 @@ export default function App() {
                   className="mt-6 max-w-2xl text-base leading-7 text-white/70 md:text-lg"
                 >
                   I&apos;m Rayyan, 18. rayflics is where I document the people around me and the
-                  environments we move through. Most of the work is unplanned—friends, streets, late
+                  environments we move through. Most of the work is unplanned, friends, streets, late
                   nights, and whatever happens in front of the lens.
                 </motion.p>
 
@@ -571,7 +571,7 @@ export default function App() {
                 {[
                   ["12", "Selected frames"],
                   ["01", "Medium"],
-                  ["∞", "Ongoing archive"],
+                  ["Infinity", "Ongoing archive"],
                 ].map(([value, label]) => (
                   <div key={label} className="rounded-[1.5rem] border border-white/10 bg-black/30 p-5">
                     <p className="text-3xl font-semibold tracking-[-0.04em]">{value}</p>

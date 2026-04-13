@@ -23,7 +23,7 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   background: var(--bg);
 }
 
@@ -81,4 +81,25 @@ body::before {
   );
   mix-blend-mode: soft-light;
   animation: flicker 0.18s infinite;
+}
+
+@media (hover: none), (pointer: coarse) {
+  body::before {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

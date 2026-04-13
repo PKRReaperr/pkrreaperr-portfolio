@@ -1,7 +1,6 @@
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { ArrowUpRight, ChevronRight, Instagram, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
 import Grain from "../components/Grain";
 import SiteHeader from "../components/SiteHeader";
 import { work } from "../data/work";
@@ -45,7 +44,7 @@ export default function HomePage() {
                   className="mt-6 max-w-2xl text-base leading-7 text-white/70 md:text-lg"
                 >
                   I&apos;m Rayyan, 18. rayflics is where I document the people around me and the
-                  environments we move through. Most of the work is unplanned—friends, streets,
+                  environments we move through. Most of the work is unplanned, friends, streets,
                   late nights, and whatever happens in front of the lens.
                 </motion.p>
 
