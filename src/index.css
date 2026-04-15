@@ -16,6 +16,25 @@
   -moz-osx-font-smoothing: grayscale;
   --bg: #050505;
   --fg: #ffffff;
+  --selection-bg: #ffffff;
+  --selection-fg: #050505;
+  --flicker-top: rgba(255,255,255,0.03);
+  --flicker-mid: rgba(255,255,255,0.01);
+  --flicker-bottom: rgba(0,0,0,0.06);
+  --flicker-blend: soft-light;
+}
+
+:root[data-theme="light"] {
+  color: #17120f;
+  background: #f4eee3;
+  --bg: #f4eee3;
+  --fg: #17120f;
+  --selection-bg: #17120f;
+  --selection-fg: #fff8ef;
+  --flicker-top: rgba(255,255,255,0.15);
+  --flicker-mid: rgba(179,137,92,0.06);
+  --flicker-bottom: rgba(84,58,36,0.04);
+  --flicker-blend: multiply;
 }
 
 * {
@@ -34,6 +53,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   overflow-x: hidden;
+  transition: background-color 500ms ease, color 500ms ease;
 }
 
 a {
@@ -54,8 +74,8 @@ img {
 }
 
 ::selection {
-  background: white;
-  color: black;
+  background: var(--selection-bg);
+  color: var(--selection-fg);
 }
 
 .hero-font {
@@ -75,12 +95,20 @@ body::before {
   z-index: 1;
   background: linear-gradient(
     to bottom,
-    rgba(255,255,255,0.03) 0%,
-    rgba(255,255,255,0.01) 50%,
-    rgba(0,0,0,0.06) 100%
+    var(--flicker-top) 0%,
+    var(--flicker-mid) 50%,
+    var(--flicker-bottom) 100%
   );
-  mix-blend-mode: soft-light;
+  mix-blend-mode: var(--flicker-blend);
   animation: flicker 0.18s infinite;
+  transition: background 500ms ease, opacity 500ms ease, mix-blend-mode 500ms ease;
+}
+
+.theme-transition,
+.theme-transition * {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: 500ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (hover: none), (pointer: coarse) {
