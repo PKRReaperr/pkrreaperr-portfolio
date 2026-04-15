@@ -307,13 +307,44 @@ function FloatingPreview({ item, mouse, isLight }) {
 }
 
 function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
-  if (selectedIndex === null) return null;
   const current = items[selectedIndex];
+  const [loadedImageSrc, setLoadedImageSrc] = useState(null);
+
+  useEffect(() => {
+    if (!current) return undefined;
+
+    let cancelled = false;
+    const image = new Image();
+    image.src = current.image;
+
+    const markReady = () => {
+      if (!cancelled) {
+        setLoadedImageSrc(current.image);
+      }
+    };
+
+    if (image.complete) {
+      markReady();
+    } else {
+      image.onload = markReady;
+      image.onerror = markReady;
+
+      if (typeof image.decode === "function") {
+        image.decode().then(markReady).catch(() => {});
+      }
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [current]);
+
+  if (!current) return null;
+  const isImageReady = loadedImageSrc === current.image;
 
   return (
     <AnimatePresence>
       <motion.div
-        key={current.image}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -372,10 +403,17 @@ function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
           className="relative max-h-full max-w-6xl"
           onClick={(e) => e.stopPropagation()}
         >
+          <div
+            className={`absolute inset-0 rounded-[1.5rem] transition-opacity duration-200 ${
+              isImageReady ? "opacity-0" : "opacity-100"
+            } ${isLight ? "bg-[#eadbc8]" : "bg-white/10"}`}
+          />
           <img
             src={current.image}
             alt={`Gallery image ${selectedIndex + 1}`}
-            className="max-h-[88vh] w-auto max-w-full rounded-[1.5rem] object-contain shadow-2xl"
+            className={`max-h-[88vh] w-auto max-w-full rounded-[1.5rem] object-contain shadow-2xl transition-opacity duration-200 ${
+              isImageReady ? "opacity-100" : "opacity-0"
+            }`}
           />
 
           <div className={`mt-4 flex items-center justify-between text-sm ${isLight ? "text-black/60" : "text-white/60"}`}>
@@ -407,20 +445,20 @@ function ThemeToggle({ theme, onToggle, isLight }) {
       type="button"
       onClick={onToggle}
       aria-label={`Switch to ${isLight ? "dark" : "light"} mode`}
-      className={`relative inline-flex h-12 w-[6.25rem] items-center rounded-full border px-2 ${
+      className={`relative inline-flex h-10 w-[5.2rem] items-center rounded-full border px-1.5 ${
         isLight
           ? "border-black/10 bg-[#fffaf2]/80 text-[#17120f] shadow-[0_10px_35px_rgba(82,58,37,0.12)]"
           : "border-white/10 bg-white/[0.04] text-white"
       }`}
     >
       <span
-        className={`absolute left-2 top-1.5 h-9 w-9 rounded-full transition-transform duration-500 ${
-          isLight ? "translate-x-[2.7rem] bg-[#17120f]" : "translate-x-0 bg-white"
+        className={`absolute left-1.5 top-1.5 h-7 w-7 rounded-full transition-transform duration-500 ${
+          isLight ? "translate-x-[2.1rem] bg-[#17120f]" : "translate-x-0 bg-white"
         }`}
       />
       <span className="relative z-10 flex w-full items-center justify-between px-1">
-        <Sun className={`h-4 w-4 ${isLight ? "text-[#fff8ef]" : "text-white/55"}`} />
-        <Moon className={`h-4 w-4 ${isLight ? "text-black/45" : "text-[#050505]"}`} />
+        <Sun className={`h-3.5 w-3.5 ${isLight ? "text-[#fff8ef]" : "text-white/55"}`} />
+        <Moon className={`h-3.5 w-3.5 ${isLight ? "text-black/45" : "text-[#050505]"}`} />
       </span>
       <span className="sr-only">Current theme: {theme}</span>
     </button>
@@ -486,6 +524,17 @@ export default function App() {
     }
     document.body.style.overflow = "";
   }, [bootDone]);
+
+  useEffect(() => {
+    work.forEach((item) => {
+      const image = new Image();
+      image.src = item.image;
+
+      if (typeof image.decode === "function") {
+        image.decode().catch(() => {});
+      }
+    });
+  }, []);
 
   const openLightboxFromFiltered = (image) => {
     const index = filteredWork.findIndex((item) => item.image === image);
