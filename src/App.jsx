@@ -11,6 +11,7 @@ import {
   Sun,
   X,
 } from "lucide-react";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import img1 from "./assets/326238254_875997890318220_6284310975885855932_n.jpg";
 import img2 from "./assets/620979117_17988771155763036_1148086386839386716_n.webp";
@@ -465,6 +466,330 @@ function ThemeToggle({ theme, onToggle, isLight }) {
   );
 }
 
+function SiteHeader({ isLight, theme, onToggle, shellClass, navLinkClass }) {
+  const location = useLocation();
+  const links = [
+    ["Home", "/"],
+    ["Archive", "/archive"],
+    ["Statement", "/statement"],
+    ["Contact", "/contact"],
+  ];
+
+  return (
+    <header className="fixed inset-x-0 top-0 z-40">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8 lg:px-10">
+        <Link to="/" className={`rounded-full border px-4 py-2 backdrop-blur-xs ${shellClass}`}>
+          <p className={`text-[10px] uppercase tracking-[0.35em] ${isLight ? "text-black/55" : "text-white/50"}`}>
+            rayflics
+          </p>
+        </Link>
+
+        <div className="flex items-center gap-3">
+          <nav className={`hidden items-center gap-2 rounded-full border p-1.5 backdrop-blur md:flex ${shellClass}`}>
+            {links.map(([label, href]) => {
+              const isActive = location.pathname === href;
+              return (
+                <Link
+                  key={label}
+                  to={href}
+                  className={`${navLinkClass} transition ${isActive ? (isLight ? "bg-[#17120f] text-[#fff8ef]" : "bg-white text-black") : ""}`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <ThemeToggle
+            theme={theme}
+            onToggle={onToggle}
+            isLight={isLight}
+          />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function HomePageView({ isLight, heroY, heroOpacity, shellClass, buttonPrimaryClass, buttonSecondaryClass, onOpenImage }) {
+  const featured = work.slice(0, 3);
+
+  return (
+    <main>
+      <section className="relative overflow-hidden px-5 pb-16 pt-16 md:px-8 lg:px-10 lg:pb-28 lg:pt-20">
+        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="mx-auto max-w-7xl">
+          <div className="grid gap-14 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
+            <div>
+              <SectionLabel isLight={isLight}>Photography / Archive</SectionLabel>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+                className="hero-font mt-5 max-w-5xl text-[12vw] font-semibold uppercase leading-[0.9] tracking-[-0.05em] sm:text-[9vw] lg:text-6xl xl:text-7xl"
+              >
+                TIME DOESN&apos;T STOP. I&apos;D LIKE TO TRY.
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25, duration: 0.7 }}
+                className={`mt-6 max-w-2xl text-base leading-7 md:text-lg ${isLight ? "text-black/70" : "text-white/70"}`}
+              >
+                I&apos;m Rayyan, 18. rayflics is where I document the people around me and the
+                environments we move through. The archive now opens as dedicated pages so each body of
+                work can breathe on its own screen.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.7 }}
+                className="mt-8 flex flex-wrap gap-3"
+              >
+                <Link
+                  to="/archive"
+                  className={`group inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${buttonPrimaryClass}`}
+                >
+                  Enter archive
+                  <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                </Link>
+
+                <Link
+                  to="/statement"
+                  className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-medium transition ${buttonSecondaryClass}`}
+                >
+                  Artist statement
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </motion.div>
+            </div>
+
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.35, duration: 0.8 }}
+              onClick={() => onOpenImage(work[0].image)}
+              className={`relative block w-full overflow-hidden rounded-[2rem] border p-3 text-left backdrop-blur transition ${shellClass} ${
+                isLight ? "hover:border-black/20" : "hover:border-white/20"
+              }`}
+            >
+              <div className={`absolute -left-8 -top-8 h-24 w-24 rounded-full border ${isLight ? "border-black/10" : "border-white/10"}`} />
+              <div className="relative overflow-hidden rounded-[1.4rem]">
+                <img
+                  src={work[0].image}
+                  alt="Featured photograph"
+                  className="h-[28rem] w-full object-cover transition duration-700 hover:scale-[1.03]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+                  <p className="text-[10px] uppercase tracking-[0.32em] text-white/70">{work[0].caption}</p>
+                  <h2 className="mt-2 text-2xl font-medium">{work[0].title}</h2>
+                </div>
+              </div>
+            </motion.button>
+          </div>
+        </motion.div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-16 md:px-8 lg:px-10 lg:pb-24">
+        <div className="grid gap-4 lg:grid-cols-3">
+          {featured.map((item, index) => (
+            <motion.button
+              key={`${item.image}-${index}`}
+              type="button"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.5, delay: index * 0.06 }}
+              onClick={() => onOpenImage(item.image)}
+              className={`group relative overflow-hidden rounded-[2rem] border text-left ${shellClass}`}
+            >
+              <img src={item.image} alt={item.title} className="h-[22rem] w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-white/65">{item.caption}</p>
+                <h3 className="mt-2 text-2xl font-medium">{item.title}</h3>
+              </div>
+            </motion.button>
+          ))}
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {[
+            ["Archive", "/archive", "Browse the full image collection on its own page."],
+            ["Statement", "/statement", "Read the project intent without fighting the scroll."],
+            ["Contact", "/contact", "Open commissions, prints, and collaboration info directly."],
+          ].map(([label, href, copy]) => (
+            <Link key={label} to={href} className={`rounded-[1.75rem] border p-6 transition ${shellClass} ${isLight ? "hover:border-black/20" : "hover:border-white/20"}`}>
+              <p className={`text-[10px] uppercase tracking-[0.32em] ${isLight ? "text-black/45" : "text-white/45"}`}>{label}</p>
+              <p className="mt-3 text-xl font-medium">{label}</p>
+              <p className={`mt-3 text-sm leading-7 ${isLight ? "text-black/65" : "text-white/65"}`}>{copy}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ArchivePageView({ filteredWork, isLight, shellClass, textMutedClass, onOpenImage, onHoverItem, onLeaveHover }) {
+  return (
+    <main className="mx-auto max-w-7xl px-5 pb-16 pt-28 md:px-8 lg:px-10">
+      <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div>
+          <SectionLabel isLight={isLight}>Archive</SectionLabel>
+          <h1 className="mt-4 text-3xl font-semibold tracking-[-0.05em] md:text-5xl">
+            Work, arranged like an editorial spread.
+          </h1>
+        </div>
+
+        <div className={`rounded-full border px-4 py-2 text-sm ${shellClass} ${textMutedClass}`}>
+          {filteredWork.length} images
+        </div>
+      </div>
+
+      <div className="grid auto-rows-[220px] grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
+        {filteredWork.map((item, index) => {
+          const spans = [
+            "xl:col-span-7 xl:row-span-2",
+            "xl:col-span-5 xl:row-span-1",
+            "xl:col-span-5 xl:row-span-2",
+            "xl:col-span-7 xl:row-span-1",
+            "xl:col-span-4 xl:row-span-1",
+            "xl:col-span-8 xl:row-span-2",
+          ];
+
+          return (
+            <motion.button
+              type="button"
+              key={`${item.image}-${index}`}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: 0.55, delay: index * 0.05 }}
+              onMouseEnter={() => onHoverItem(item)}
+              onMouseLeave={onLeaveHover}
+              onClick={() => onOpenImage(item.image)}
+              className={`group relative overflow-hidden rounded-[2rem] border text-left ${shellClass} ${spans[index % spans.length]}`}
+            >
+              <img src={item.image} alt={item.title} className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent opacity-95" />
+              <div className="absolute inset-x-0 bottom-0 p-5 text-white md:p-6">
+                <div className="mb-3 flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-white/65">
+                  <span>{item.caption}</span>
+                  <span>{item.year}</span>
+                </div>
+                <h3 className="max-w-xl text-2xl font-medium tracking-[-0.04em] md:text-3xl">{item.title}</h3>
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
+    </main>
+  );
+}
+
+function StatementPageView({ isLight, shellClass, shellMutedClass, statCardClass, onOpenImage }) {
+  return (
+    <main className="mx-auto max-w-7xl px-5 pb-16 pt-28 md:px-8 lg:px-10">
+      <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+        <motion.button
+          type="button"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          onClick={() => onOpenImage(work[4].image)}
+          className={`overflow-hidden rounded-[2rem] border text-left ${shellClass}`}
+        >
+          <img src={work[4].image} alt={work[4].title} className="h-full min-h-[32rem] w-full object-cover" />
+        </motion.button>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className={`flex flex-col justify-between rounded-[2rem] border p-7 md:p-10 ${shellMutedClass}`}
+        >
+          <div>
+            <SectionLabel isLight={isLight}>Artist statement</SectionLabel>
+            <h1 className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.05em] md:text-5xl">
+              TIME NEVER STOPS, I LIKE TO TRY
+            </h1>
+            <p className={`mt-6 max-w-2xl text-base leading-8 ${isLight ? "text-black/70" : "text-white/70"}`}>
+              I shoot moments that feel immediate, personal, and impossible to hold onto for long.
+              The archive is about movement, people, energy, and the feeling of time slipping
+              forward while I try to catch pieces of it.
+            </p>
+            <p className={`mt-4 max-w-2xl text-base leading-8 ${isLight ? "text-black/70" : "text-white/70"}`}>
+              Splitting the work into pages makes each section feel closer to a chapter than a block
+              on a landing page. This one is the pause between images, where the intent gets the full frame.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            {[
+              ["12", "Selected frames"],
+              ["01", "Medium"],
+              ["Infinity", "Ongoing archive"],
+            ].map(([value, label]) => (
+              <div key={label} className={`rounded-[1.5rem] border p-5 ${statCardClass}`}>
+                <p className="text-3xl font-semibold tracking-[-0.04em]">{value}</p>
+                <p className={`mt-2 text-sm ${isLight ? "text-black/55" : "text-white/55"}`}>{label}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </main>
+  );
+}
+
+function ContactPageView({ isLight, shellMutedClass, contactCardClass }) {
+  return (
+    <main className="px-5 pb-16 pt-28 md:px-8 lg:px-10 lg:pb-24">
+      <div className={`mx-auto max-w-7xl overflow-hidden rounded-[2.2rem] border p-7 md:p-10 lg:p-12 ${shellMutedClass}`}>
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+          <div>
+            <SectionLabel isLight={isLight}>Contact</SectionLabel>
+            <h1 className="mt-4 max-w-3xl text-4xl font-semibold uppercase leading-[0.95] tracking-[-0.06em] md:text-6xl xl:text-7xl">
+              Available for commissions, prints, and collaborations.
+            </h1>
+            <p className={`mt-6 max-w-2xl text-base leading-8 ${isLight ? "text-black/70" : "text-white/70"}`}>
+              If you want a portrait session, editorial coverage, print inquiry, or a collaboration,
+              this page keeps the conversation front and center without making you scroll back through the gallery.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <a
+              href="mailto:pkrreaperr@gmail.com"
+              className={`group flex items-center justify-between rounded-[1.5rem] border px-5 py-4 transition ${contactCardClass}`}
+            >
+              <span className="inline-flex items-center gap-3">
+                <Mail className="h-4 w-4" />
+                pkrreaperr@gmail.com
+              </span>
+              <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </a>
+
+            <a
+              href="https://instagram.com/rayflics"
+              className={`group flex items-center justify-between rounded-[1.5rem] border px-5 py-4 transition ${contactCardClass}`}
+            >
+              <span className="inline-flex items-center gap-3">
+                <Instagram className="h-4 w-4" />
+                @rayflics
+              </span>
+              <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function App() {
   const containerRef = useRef(null);
   const [hovered, setHovered] = useState(null);
@@ -601,256 +926,67 @@ export default function App() {
         isLight={isLight}
       />
 
-      <header className="fixed inset-x-0 top-0 z-40">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8 lg:px-10">
-          <div className={`rounded-full border px-4 py-2 backdrop-blur-xs ${shellClass}`}>
-            <p className={`text-[10px] uppercase tracking-[0.35em] ${isLight ? "text-black/55" : "text-white/50"}`}>rayflics</p>
-          </div>
+      <SiteHeader
+        isLight={isLight}
+        theme={theme}
+        onToggle={() => setTheme((currentTheme) => (currentTheme === "dark" ? "light" : "dark"))}
+        shellClass={shellClass}
+        navLinkClass={navLinkClass}
+      />
 
-          <div className="flex items-center gap-3">
-            <nav className={`hidden items-center gap-2 rounded-full border p-1.5 backdrop-blur md:flex ${shellClass}`}>
-              {[
-                ["Archive", "#archive"],
-                ["Statement", "#statement"],
-                ["Contact", "#contact"],
-              ].map(([label, href]) => (
-                <a key={label} href={href} className={`transition ${navLinkClass}`}>
-                  {label}
-                </a>
-              ))}
-            </nav>
-
-            <ThemeToggle
-              theme={theme}
-              onToggle={() => setTheme((currentTheme) => (currentTheme === "dark" ? "light" : "dark"))}
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <HomePageView
               isLight={isLight}
+              heroY={heroY}
+              heroOpacity={heroOpacity}
+              shellClass={shellClass}
+              buttonPrimaryClass={buttonPrimaryClass}
+              buttonSecondaryClass={buttonSecondaryClass}
+              onOpenImage={openLightboxFromFiltered}
             />
-          </div>
-        </div>
-      </header>
-
-      <main>
-        <section className="relative overflow-hidden px-5 pb-16 pt-16 md:px-8 lg:px-10 lg:pb-28 lg:pt-20">
-          <motion.div style={{ y: heroY, opacity: heroOpacity }} className="mx-auto max-w-7xl">
-            <div className="grid gap-14 lg:grid-cols-[1.4fr_0.8fr] lg:items-end">
-              <div>
-                <SectionLabel isLight={isLight}>Photography / Archive</SectionLabel>
-
-                <motion.h1
-                  initial={{ opacity: 0, y: 28 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
-                  className="hero-font mt-5 max-w-5xl text-[12vw] font-semibold uppercase leading-[0.9] tracking-[-0.05em] sm:text-[9vw] lg:text-6xl xl:text-7xl"
-                >
-                  TIME DOESN&apos;T STOP. I&apos;D LIKE TO TRY.
-                </motion.h1>
-
-                <motion.p
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25, duration: 0.7 }}
-                  className={`mt-6 max-w-2xl text-base leading-7 md:text-lg ${isLight ? "text-black/70" : "text-white/70"}`}
-                >
-                  I&apos;m Rayyan, 18. rayflics is where I document the people around me and the
-                  environments we move through. Most of the work is unplanned, friends, streets, late
-                  nights, and whatever happens in front of the lens.
-                </motion.p>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35, duration: 0.7 }}
-                  className="mt-8 flex flex-wrap gap-3"
-                >
-                  <a
-                    href="#archive"
-                    className={`group inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${buttonPrimaryClass}`}
-                  >
-                    Enter archive
-                    <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                  </a>
-
-                  <a
-                    href="#contact"
-                    className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-medium transition ${buttonSecondaryClass}`}
-                  >
-                    Contact
-                    <ArrowUpRight className="h-4 w-4" />
-                  </a>
-                </motion.div>
-              </div>
-
-              <motion.button
-                type="button"
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.35, duration: 0.8 }}
-                onClick={() => openLightboxFromFiltered(work[0].image)}
-                className={`relative block w-full overflow-hidden rounded-[2rem] border p-3 text-left backdrop-blur transition ${shellClass} ${
-                  isLight ? "hover:border-black/20" : "hover:border-white/20"
-                }`}
-              >
-                <div className={`absolute -left-8 -top-8 h-24 w-24 rounded-full border ${isLight ? "border-black/10" : "border-white/10"}`} />
-                <div className="relative overflow-hidden rounded-[1.4rem]">
-                  <img
-                    src={work[0].image}
-                    alt="Featured photograph"
-                    className="h-[26rem] w-full object-cover transition duration-700 hover:scale-[1.03]"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-5 text-white">
-                    <p className="text-[10px] uppercase tracking-[0.32em] text-white/70">{work[0].caption}</p>
-                    <h2 className="mt-2 text-2xl font-medium">{work[0].title}</h2>
-                  </div>
-                </div>
-              </motion.button>
-            </div>
-          </motion.div>
-        </section>
-
-        <section id="archive" className="mx-auto max-w-7xl px-5 py-16 md:px-8 lg:px-10 lg:py-24">
-          <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <SectionLabel isLight={isLight}>Archive</SectionLabel>
-              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] md:text-5xl">
-                Work, arranged like an editorial spread.
-              </h2>
-            </div>
-
-            <div className={`rounded-full border px-4 py-2 text-sm ${shellClass} ${textMutedClass}`}>
-              {work.length} images
-            </div>
-          </div>
-
-          <div className="grid auto-rows-[220px] grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
-            {filteredWork.map((item, index) => {
-              const spans = [
-                "xl:col-span-7 xl:row-span-2",
-                "xl:col-span-5 xl:row-span-1",
-                "xl:col-span-5 xl:row-span-2",
-                "xl:col-span-7 xl:row-span-1",
-                "xl:col-span-4 xl:row-span-1",
-                "xl:col-span-8 xl:row-span-2",
-              ];
-
-              return (
-                <motion.button
-                  type="button"
-                  key={`${item.image}-${index}`}
-                  initial={{ opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.15 }}
-                  transition={{ duration: 0.55, delay: index * 0.05 }}
-                  onMouseEnter={() => setHovered(item)}
-                  onMouseLeave={() => setHovered(null)}
-                  onClick={() => openLightboxFromFiltered(item.image)}
-                  className={`group relative overflow-hidden rounded-[2rem] border text-left ${shellClass} ${spans[index % spans.length]}`}
-                >
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent opacity-95" />
-                  <div className="absolute inset-x-0 bottom-0 p-5 text-white md:p-6">
-                    <div className="mb-3 flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-white/65">
-                      <span>{item.caption}</span>
-                      <span>{item.year}</span>
-                    </div>
-                    <h3 className="max-w-xl text-2xl font-medium tracking-[-0.04em] md:text-3xl">
-                      {item.title}
-                    </h3>
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-5 py-12 md:px-8 lg:px-10 lg:py-20">
-          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-            <motion.button
-              type="button"
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              onClick={() => openLightboxFromFiltered(work[4].image)}
-              className={`overflow-hidden rounded-[2rem] border text-left ${shellClass}`}
-            >
-              <img src={work[4].image} alt={work[4].title} className="h-full min-h-[28rem] w-full object-cover" />
-            </motion.button>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className={`flex flex-col justify-between rounded-[2rem] border p-7 md:p-10 ${shellMutedClass}`}
-            >
-              <div>
-                <SectionLabel isLight={isLight}>Artist statement</SectionLabel>
-                <h2 id="statement" className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.05em] md:text-5xl">
-                  TIME NEVER STOPS, I LIKE TO TRY
-                </h2>
-                <p className={`mt-6 max-w-2xl text-base leading-8 ${isLight ? "text-black/70" : "text-white/70"}`}>
-                  I shoot moments that feel immediate, personal, and impossible to hold onto for long.
-                  The archive is about movement, people, energy, and the feeling of time slipping
-                  forward while I try to catch pieces of it.
-                </p>
-              </div>
-
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                {[
-                  ["12", "Selected frames"],
-                  ["01", "Medium"],
-                  ["Infinity", "Ongoing archive"],
-                ].map(([value, label]) => (
-                  <div key={label} className={`rounded-[1.5rem] border p-5 ${statCardClass}`}>
-                    <p className="text-3xl font-semibold tracking-[-0.04em]">{value}</p>
-                    <p className={`mt-2 text-sm ${isLight ? "text-black/55" : "text-white/55"}`}>{label}</p>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        <section id="contact" className="px-5 pb-16 pt-8 md:px-8 lg:px-10 lg:pb-24">
-          <div className={`mx-auto max-w-7xl overflow-hidden rounded-[2.2rem] border p-7 md:p-10 lg:p-12 ${shellMutedClass}`}>
-            <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
-              <div>
-                <SectionLabel isLight={isLight}>Contact</SectionLabel>
-                <h2 className="mt-4 max-w-3xl text-4xl font-semibold uppercase leading-[0.95] tracking-[-0.06em] md:text-6xl xl:text-7xl">
-                  Available for commissions, prints, and collaborations.
-                </h2>
-              </div>
-
-              <div className="space-y-4">
-                <a
-                  href="mailto:pkrreaperr@gmail.com"
-                  className={`group flex items-center justify-between rounded-[1.5rem] border px-5 py-4 transition ${contactCardClass}`}
-                >
-                  <span className="inline-flex items-center gap-3">
-                    <Mail className="h-4 w-4" />
-                    pkrreaperr@gmail.com
-                  </span>
-                  <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </a>
-
-                <a
-                  href="https://instagram.com/rayflics"
-                  className={`group flex items-center justify-between rounded-[1.5rem] border px-5 py-4 transition ${contactCardClass}`}
-                >
-                  <span className="inline-flex items-center gap-3">
-                    <Instagram className="h-4 w-4" />
-                    @rayflics
-                  </span>
-                  <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+          }
+        />
+        <Route
+          path="/archive"
+          element={
+            <ArchivePageView
+              filteredWork={filteredWork}
+              isLight={isLight}
+              shellClass={shellClass}
+              textMutedClass={textMutedClass}
+              onOpenImage={openLightboxFromFiltered}
+              onHoverItem={setHovered}
+              onLeaveHover={() => setHovered(null)}
+            />
+          }
+        />
+        <Route
+          path="/statement"
+          element={
+            <StatementPageView
+              isLight={isLight}
+              shellClass={shellClass}
+              shellMutedClass={shellMutedClass}
+              statCardClass={statCardClass}
+              onOpenImage={openLightboxFromFiltered}
+            />
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <ContactPageView
+              isLight={isLight}
+              shellMutedClass={shellMutedClass}
+              contactCardClass={contactCardClass}
+            />
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }
