@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,7 +11,7 @@ import {
   Sun,
   X,
 } from "lucide-react";
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
 
 import img1 from "./assets/326238254_875997890318220_6284310975885855932_n.jpg";
 import img2 from "./assets/620979117_17988771155763036_1148086386839386716_n.webp";
@@ -52,6 +52,30 @@ function getInitialTheme() {
   }
 
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function shuffleItems(items) {
+  const copy = [...items];
+
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[randomIndex]] = [copy[randomIndex], copy[index]];
+  }
+
+  return copy;
+}
+
+function createHomeLayout(items) {
+  const [heroImage, ...supportingImages] = shuffleItems(items).slice(0, 4);
+
+  return {
+    heroImage,
+    supportingImages,
+    heroRotation: `${Math.round((Math.random() * 6 - 3) * 10) / 10}deg`,
+    supportingRotations: supportingImages.map(
+      () => `${Math.round((Math.random() * 10 - 5) * 10) / 10}deg`
+    ),
+  };
 }
 
 function Grain({ isLight }) {
@@ -466,8 +490,7 @@ function ThemeToggle({ theme, onToggle, isLight }) {
   );
 }
 
-function SiteHeader({ isLight, theme, onToggle, shellClass, navLinkClass }) {
-  const location = useLocation();
+function SiteHeader({ isLight, theme, onToggle, shellClass, navLinkClass, navLinkActiveClass }) {
   const links = [
     ["Home", "/"],
     ["Archive", "/archive"],
@@ -487,15 +510,17 @@ function SiteHeader({ isLight, theme, onToggle, shellClass, navLinkClass }) {
         <div className="flex items-center gap-3">
           <nav className={`hidden items-center gap-2 rounded-full border p-1.5 backdrop-blur md:flex ${shellClass}`}>
             {links.map(([label, href]) => {
-              const isActive = location.pathname === href;
               return (
-                <Link
+                <NavLink
                   key={label}
                   to={href}
-                  className={`${navLinkClass} transition ${isActive ? (isLight ? "bg-[#17120f] text-[#fff8ef]" : "bg-white text-black") : ""}`}
+                  end={href === "/"}
+                  className={({ isActive }) =>
+                    isActive ? navLinkActiveClass : `${navLinkClass} transition`
+                  }
                 >
                   {label}
-                </Link>
+                </NavLink>
               );
             })}
           </nav>
@@ -511,13 +536,20 @@ function SiteHeader({ isLight, theme, onToggle, shellClass, navLinkClass }) {
   );
 }
 
-function HomePageView({ isLight, heroY, heroOpacity, shellClass, buttonPrimaryClass, buttonSecondaryClass, onOpenImage }) {
-  const featured = work.slice(0, 3);
+function HomePageView({
+  isLight,
+  shellClass,
+  buttonPrimaryClass,
+  buttonSecondaryClass,
+  onOpenImage,
+  homeLayout,
+}) {
+  const { heroImage, supportingImages, heroRotation, supportingRotations } = homeLayout;
 
   return (
-    <main>
-      <section className="relative overflow-hidden px-5 pb-16 pt-16 md:px-8 lg:px-10 lg:pb-28 lg:pt-20">
-        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="mx-auto max-w-7xl">
+    <main className="min-h-screen">
+      <section className="relative flex min-h-screen items-center overflow-hidden px-5 pb-8 pt-24 md:px-8 md:pb-10 md:pt-28 lg:px-10 lg:pb-12">
+        <motion.div className="mx-auto flex w-full max-w-7xl flex-col justify-center">
           <div className="grid gap-14 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
             <div>
               <SectionLabel isLight={isLight}>Photography / Archive</SectionLabel>
@@ -571,22 +603,23 @@ function HomePageView({ isLight, heroY, heroOpacity, shellClass, buttonPrimaryCl
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.35, duration: 0.8 }}
-              onClick={() => onOpenImage(work[0].image)}
+              onClick={() => onOpenImage(heroImage.image)}
               className={`relative block w-full overflow-hidden rounded-[2rem] border p-3 text-left backdrop-blur transition ${shellClass} ${
                 isLight ? "hover:border-black/20" : "hover:border-white/20"
               }`}
+              style={{ rotate: heroRotation }}
             >
               <div className={`absolute -left-8 -top-8 h-24 w-24 rounded-full border ${isLight ? "border-black/10" : "border-white/10"}`} />
               <div className="relative overflow-hidden rounded-[1.4rem]">
                 <img
-                  src={work[0].image}
+                  src={heroImage.image}
                   alt="Featured photograph"
                   className="h-[28rem] w-full object-cover transition duration-700 hover:scale-[1.03]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-5 text-white">
-                  <p className="text-[10px] uppercase tracking-[0.32em] text-white/70">{work[0].caption}</p>
-                  <h2 className="mt-2 text-2xl font-medium">{work[0].title}</h2>
+                  <p className="text-[10px] uppercase tracking-[0.32em] text-white/70">{heroImage.caption}</p>
+                  <h2 className="mt-2 text-2xl font-medium">{heroImage.title}</h2>
                 </div>
               </div>
             </motion.button>
@@ -596,18 +629,24 @@ function HomePageView({ isLight, heroY, heroOpacity, shellClass, buttonPrimaryCl
 
       <section className="mx-auto max-w-7xl px-5 pb-16 md:px-8 lg:px-10 lg:pb-24">
         <div className="grid gap-4 lg:grid-cols-3">
-          {featured.map((item, index) => (
+          {supportingImages.map((item, index) => (
             <motion.button
               key={`${item.image}-${index}`}
               type="button"
               initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.06 }}
               onClick={() => onOpenImage(item.image)}
               className={`group relative overflow-hidden rounded-[2rem] border text-left ${shellClass}`}
+              style={{ rotate: supportingRotations[index] }}
             >
-              <img src={item.image} alt={item.title} className="h-[22rem] w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+              <img
+                src={item.image}
+                alt={item.title}
+                loading="eager"
+                fetchPriority="high"
+                className="h-[22rem] w-full object-cover transition duration-700 group-hover:scale-[1.04]"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-5 text-white">
                 <p className="text-[10px] uppercase tracking-[0.3em] text-white/65">{item.caption}</p>
@@ -667,15 +706,20 @@ function ArchivePageView({ filteredWork, isLight, shellClass, textMutedClass, on
               type="button"
               key={`${item.image}-${index}`}
               initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.15 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: index * 0.05 }}
               onMouseEnter={() => onHoverItem(item)}
               onMouseLeave={onLeaveHover}
               onClick={() => onOpenImage(item.image)}
               className={`group relative overflow-hidden rounded-[2rem] border text-left ${shellClass} ${spans[index % spans.length]}`}
             >
-              <img src={item.image} alt={item.title} className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]" />
+              <img
+                src={item.image}
+                alt={item.title}
+                loading="eager"
+                fetchPriority="high"
+                className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent opacity-95" />
               <div className="absolute inset-x-0 bottom-0 p-5 text-white md:p-6">
                 <div className="mb-3 flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-white/65">
@@ -798,12 +842,8 @@ export default function App() {
   const [bootDone, setBootDone] = useState(false);
   const [theme, setTheme] = useState(getInitialTheme);
 
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 110, damping: 30, mass: 0.2 });
-  const heroY = useTransform(scrollYProgress, [0, 0.25], [0, 140]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0.35]);
-
   const filteredWork = useMemo(() => work, []);
+  const homeLayout = useMemo(() => createHomeLayout(work), []);
   const isLight = theme === "light";
 
   useEffect(() => {
@@ -881,7 +921,6 @@ export default function App() {
   const pageClass = isLight
     ? "min-h-screen bg-[#f4eee3] text-[#17120f] selection:bg-[#17120f] selection:text-[#fff8ef]"
     : "min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black";
-  const accentBarClass = isLight ? "bg-[#17120f]" : "bg-white";
   const shellClass = isLight
     ? "border-black/10 bg-[#fffaf2]/80 shadow-[0_12px_35px_rgba(82,58,37,0.1)]"
     : "border-white/10 bg-white/[0.03]";
@@ -902,6 +941,9 @@ export default function App() {
   const navLinkClass = isLight
     ? "rounded-full px-4 py-2 text-sm text-black/70 hover:bg-[#17120f] hover:text-[#fff8ef]"
     : "rounded-full px-4 py-2 text-sm text-white/70 hover:bg-white hover:text-black";
+  const navLinkActiveClass = isLight
+    ? "rounded-full bg-[#17120f] px-4 py-2 text-sm text-[#fff8ef] shadow-[0_10px_24px_rgba(23,18,15,0.18)] transition"
+    : "rounded-full bg-white px-4 py-2 text-sm text-black shadow-[0_10px_24px_rgba(255,255,255,0.18)] transition";
 
   return (
     <div ref={containerRef} className={`theme-transition ${pageClass}`}>
@@ -914,7 +956,6 @@ export default function App() {
             : "bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.06),transparent_25%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.04),transparent_20%)]"
         }`}
       />
-      <motion.div className={`fixed inset-x-0 top-0 z-[60] h-px origin-left ${accentBarClass}`} style={{ scaleX }} />
       <Grain isLight={isLight} />
       <FloatingPreview item={hovered} mouse={mouse} isLight={isLight} />
       <Lightbox
@@ -932,6 +973,7 @@ export default function App() {
         onToggle={() => setTheme((currentTheme) => (currentTheme === "dark" ? "light" : "dark"))}
         shellClass={shellClass}
         navLinkClass={navLinkClass}
+        navLinkActiveClass={navLinkActiveClass}
       />
 
       <Routes>
@@ -940,12 +982,11 @@ export default function App() {
           element={
             <HomePageView
               isLight={isLight}
-              heroY={heroY}
-              heroOpacity={heroOpacity}
               shellClass={shellClass}
               buttonPrimaryClass={buttonPrimaryClass}
               buttonSecondaryClass={buttonSecondaryClass}
               onOpenImage={openLightboxFromFiltered}
+              homeLayout={homeLayout}
             />
           }
         />
