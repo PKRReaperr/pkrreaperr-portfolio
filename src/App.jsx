@@ -71,10 +71,6 @@ function createHomeLayout(items) {
   return {
     heroImage,
     supportingImages,
-    heroRotation: `${Math.round((Math.random() * 6 - 3) * 10) / 10}deg`,
-    supportingRotations: supportingImages.map(
-      () => `${Math.round((Math.random() * 10 - 5) * 10) / 10}deg`
-    ),
   };
 }
 
@@ -544,7 +540,7 @@ function HomePageView({
   onOpenImage,
   homeLayout,
 }) {
-  const { heroImage, supportingImages, heroRotation, supportingRotations } = homeLayout;
+  const { heroImage, supportingImages } = homeLayout;
 
   return (
     <main className="min-h-screen">
@@ -607,7 +603,6 @@ function HomePageView({
               className={`relative block w-full overflow-hidden rounded-[2rem] border p-3 text-left backdrop-blur transition ${shellClass} ${
                 isLight ? "hover:border-black/20" : "hover:border-white/20"
               }`}
-              style={{ rotate: heroRotation }}
             >
               <div className={`absolute -left-8 -top-8 h-24 w-24 rounded-full border ${isLight ? "border-black/10" : "border-white/10"}`} />
               <div className="relative overflow-hidden rounded-[1.4rem]">
@@ -638,7 +633,6 @@ function HomePageView({
               transition={{ duration: 0.5, delay: index * 0.06 }}
               onClick={() => onOpenImage(item.image)}
               className={`group relative overflow-hidden rounded-[2rem] border text-left ${shellClass}`}
-              style={{ rotate: supportingRotations[index] }}
             >
               <img
                 src={item.image}
