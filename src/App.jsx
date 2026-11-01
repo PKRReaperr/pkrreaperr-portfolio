@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
@@ -8,10 +8,13 @@ import {
   Instagram,
   Mail,
   Moon,
+  Play,
   Sun,
   X,
 } from "lucide-react";
-import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+
+import { lenis, prefersReducedMotion } from "./lenis";
 
 import img1 from "./assets/326238254_875997890318220_6284310975885855932_n.jpg";
 import img2 from "./assets/620979117_17988771155763036_1148086386839386716_n.webp";
@@ -24,9 +27,16 @@ import img8 from "./assets/405761580_706669138055074_2930975825456933900_n.jpg";
 import img9 from "./assets/405498824_892121522615977_2958725416673313541_n.jpg";
 import img10 from "./assets/427363632_1589414215150625_7608823201987079377_n.jpg";
 import img11 from "./assets/435434831_711772940880320_7139083781688437340_n.jpg";
-import img12 from "./assets/649058644_17946815316119720_2722982213037989785_n.jpg";
+import img12 from "./assets/649058644_17946815316119720_2722982213037989785_n.webp";
 
 const THEME_STORAGE_KEY = "rayflics-theme";
+
+const PAGE_TITLES = {
+  "/": "RAYFLICS - HOME",
+  "/archive": "RAYFLICS - ARCHIVE",
+  "/statement": "RAYFLICS - STATEMENT",
+  "/contact": "RAYFLICS - CONTACT",
+};
 
 const work = [
   { title: "Late Night Window", caption: "friends / night / city", year: "2024", image: img1 },
@@ -43,12 +53,64 @@ const work = [
   { title: "Portrait in Shadow", caption: "portrait / soft light", year: "2024", image: img12 },
 ];
 
+function isVideoItem(item) {
+  return item?.type === "video" || Boolean(item?.video);
+}
+
+function getMediaSource(item) {
+  return isVideoItem(item) ? item.video : item.image;
+}
+
+function getMediaPreview(item) {
+  return item.poster ?? item.image;
+}
+
+function MediaThumbnail({ item, alt, className, priority = false }) {
+  const isVideo = isVideoItem(item);
+
+  return (
+    <>
+      {isVideo ? (
+        <video
+          src={item.video}
+          poster={getMediaPreview(item)}
+          muted
+          playsInline
+          preload="metadata"
+          className={className}
+        />
+      ) : (
+        <img
+          src={getMediaPreview(item)}
+          alt={alt}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          decoding="async"
+          className={className}
+        />
+      )}
+
+      {isVideo && (
+        <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/60 px-3 py-2 text-[10px] uppercase tracking-[0.28em] text-white backdrop-blur">
+          <Play className="h-3 w-3 fill-white" />
+          video
+        </div>
+      )}
+    </>
+  );
+}
+
 function getInitialTheme() {
   if (typeof window === "undefined") return "dark";
 
-  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-  if (storedTheme === "light" || storedTheme === "dark") {
-    return storedTheme;
+  // Storage can throw when the browser blocks site data (private modes, strict settings).
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (storedTheme === "light" || storedTheme === "dark") {
+      return storedTheme;
+    }
+  } catch {
+    // Fall through to the system preference.
   }
 
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
@@ -90,7 +152,7 @@ function Grain({ isLight }) {
 }
 
 function BootSequence({ done, setDone, isLight }) {
-  const [stage, setStage] = useState(0);
+  const [progress, setProgress] = useState(0);
   const stages = [
     "INITIALIZING VISUAL ARCHIVE",
     "LOADING NEGATIVES",
@@ -102,16 +164,45 @@ function BootSequence({ done, setDone, isLight }) {
   useEffect(() => {
     if (done) return;
 
-    const timers = [
-      setTimeout(() => setStage(1), 350),
-      setTimeout(() => setStage(2), 850),
-      setTimeout(() => setStage(3), 1400),
-      setTimeout(() => setStage(4), 1950),
-      setTimeout(() => setDone(true), 2600),
-    ];
+    const totalDuration = 3150;
+    const finishPause = 240;
+    const startTime = performance.now();
+    let frameId = null;
+    let finishTimer = null;
 
-    return () => timers.forEach(clearTimeout);
+    const advanceProgress = (now) => {
+      const elapsed = now - startTime;
+      const normalized = Math.min(elapsed / totalDuration, 1);
+
+      // Bias the progress so it starts quickly, slows in the middle,
+      // and gently settles into 100% like a believable boot sequence.
+      const eased =
+        normalized < 0.72
+          ? 1 - (1 - normalized / 0.72) ** 2.35
+          : 0.86 + ((normalized - 0.72) / 0.28) ** 1.7 * 0.14;
+
+      const nextProgress = Math.min(100, eased * 100);
+      setProgress(nextProgress);
+
+      if (normalized < 1) {
+        frameId = requestAnimationFrame(advanceProgress);
+        return;
+      }
+
+      finishTimer = setTimeout(() => setDone(true), finishPause);
+    };
+
+    frameId = requestAnimationFrame(advanceProgress);
+
+    return () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      if (finishTimer !== null) clearTimeout(finishTimer);
+    };
   }, [done, setDone]);
+
+  const stage =
+    progress >= 96 ? 4 : progress >= 70 ? 3 : progress >= 44 ? 2 : progress >= 18 ? 1 : 0;
+  const displayProgress = Math.round(progress);
 
   return (
     <AnimatePresence>
@@ -152,7 +243,7 @@ function BootSequence({ done, setDone, isLight }) {
               }`}
             >
               <span>rayflics / boot</span>
-              <span>{stage < 4 ? "stand by" : "ready"}</span>
+              <span>{displayProgress < 100 ? "loading" : "ready"}</span>
             </div>
 
             <div className="mx-auto w-full max-w-5xl">
@@ -197,14 +288,14 @@ function BootSequence({ done, setDone, isLight }) {
                     }`}
                   >
                     <span>status</span>
-                    <span>{Math.min(100, 18 + stage * 21)}%</span>
+                    <span>{displayProgress}%</span>
                   </div>
 
                   <div className={`h-2 overflow-hidden rounded-full ${isLight ? "bg-black/10" : "bg-white/10"}`}>
                     <motion.div
-                      initial={{ width: "8%" }}
-                      animate={{ width: `${Math.min(100, 18 + stage * 21)}%` }}
-                      transition={{ duration: 0.35, ease: "easeOut" }}
+                      initial={{ width: "0%" }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 0.12, ease: "linear" }}
                       className={`h-full rounded-full ${isLight ? "bg-[#17120f]" : "bg-white"}`}
                     />
                   </div>
@@ -282,7 +373,7 @@ function BootSequence({ done, setDone, isLight }) {
               }`}
             >
               <span>entering archive...</span>
-              <span>pkrreaperr.me</span>
+              <span>@rayflics</span>
             </div>
           </div>
         </motion.div>
@@ -291,12 +382,29 @@ function BootSequence({ done, setDone, isLight }) {
   );
 }
 
-function FloatingPreview({ item, mouse, isLight }) {
+function FloatingPreview({ item, isLight }) {
+  // Motion values update the transform directly, so mouse movement doesn't re-render the app.
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  useEffect(() => {
+    const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+    if (!finePointerQuery.matches) return undefined;
+
+    const onMove = (e) => {
+      x.set(e.clientX - 40);
+      y.set(e.clientY - 40);
+    };
+    window.addEventListener("mousemove", onMove);
+
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [x, y]);
+
   return (
     <AnimatePresence>
       {item ? (
         <motion.div
-          key={item.image}
+          key={getMediaSource(item)}
           initial={{ opacity: 0, scale: 0.92, rotate: -4 }}
           animate={{ opacity: 1, scale: 1, rotate: 0 }}
           exit={{ opacity: 0, scale: 0.96, rotate: 3 }}
@@ -304,9 +412,9 @@ function FloatingPreview({ item, mouse, isLight }) {
           className={`pointer-events-none fixed left-0 top-0 z-50 hidden h-72 w-56 overflow-hidden rounded-[1.75rem] border shadow-2xl md:block ${
             isLight ? "border-black/10 bg-[#fff9f1]" : "border-white/15 bg-black"
           }`}
-          style={{ transform: `translate(${mouse.x - 40}px, ${mouse.y - 40}px)` }}
+          style={{ x, y }}
         >
-          <img src={item.image} alt="Photography preview" className="h-full w-full object-cover" />
+          <MediaThumbnail item={item} alt="Photography preview" className="h-full w-full object-cover" />
           <div
             className={`absolute inset-x-0 bottom-0 p-4 ${
               isLight
@@ -333,14 +441,15 @@ function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
 
   useEffect(() => {
     if (!current) return undefined;
+    if (isVideoItem(current)) return undefined;
 
     let cancelled = false;
     const image = new Image();
-    image.src = current.image;
+    image.src = getMediaPreview(current);
 
     const markReady = () => {
       if (!cancelled) {
-        setLoadedImageSrc(current.image);
+        setLoadedImageSrc(getMediaPreview(current));
       }
     };
 
@@ -360,94 +469,114 @@ function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
     };
   }, [current]);
 
-  if (!current) return null;
-  const isImageReady = loadedImageSrc === current.image;
+  const isVideo = current ? isVideoItem(current) : false;
+  const isImageReady = isVideo || (current && loadedImageSrc === getMediaPreview(current));
 
+  // AnimatePresence must stay mounted while the lightbox closes, or the exit animation is skipped.
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 ${
-          isLight ? "bg-[#f5eee4]/95" : "bg-black/95"
-        }`}
-        onClick={onClose}
-      >
-        <button
-          onClick={onClose}
-          className={`absolute right-4 top-4 z-[110] rounded-full border p-3 transition md:right-6 md:top-6 ${
-            isLight
-              ? "border-black/10 bg-white/70 text-[#17120f] hover:bg-[#17120f] hover:text-[#fff8ef]"
-              : "border-white/15 bg-white/5 text-white hover:bg-white hover:text-black"
-          }`}
-          aria-label="Close gallery"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onPrev();
-          }}
-          className={`absolute left-4 top-1/2 z-[110] -translate-y-1/2 rounded-full border p-3 transition md:left-6 ${
-            isLight
-              ? "border-black/10 bg-white/70 text-[#17120f] hover:bg-[#17120f] hover:text-[#fff8ef]"
-              : "border-white/15 bg-white/5 text-white hover:bg-white hover:text-black"
-          }`}
-          aria-label="Previous image"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onNext();
-          }}
-          className={`absolute right-4 top-1/2 z-[110] -translate-y-1/2 rounded-full border p-3 transition md:right-6 ${
-            isLight
-              ? "border-black/10 bg-white/70 text-[#17120f] hover:bg-[#17120f] hover:text-[#fff8ef]"
-              : "border-white/15 bg-white/5 text-white hover:bg-white hover:text-black"
-          }`}
-          aria-label="Next image"
-        >
-          <ArrowRight className="h-5 w-5" />
-        </button>
-
+      {current && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="relative max-h-full max-w-6xl"
-          onClick={(e) => e.stopPropagation()}
+          key="lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={current.title}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className={`fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 ${
+            isLight ? "bg-[#f5eee4]/95" : "bg-black/95"
+          }`}
+          onClick={onClose}
         >
-          <div
-            className={`absolute inset-0 rounded-[1.5rem] transition-opacity duration-200 ${
-              isImageReady ? "opacity-0" : "opacity-100"
-            } ${isLight ? "bg-[#eadbc8]" : "bg-white/10"}`}
-          />
-          <img
-            src={current.image}
-            alt={`Gallery image ${selectedIndex + 1}`}
-            className={`max-h-[88vh] w-auto max-w-full rounded-[1.5rem] object-contain shadow-2xl transition-opacity duration-200 ${
-              isImageReady ? "opacity-100" : "opacity-0"
+          <button
+            autoFocus
+            onClick={onClose}
+            className={`absolute right-4 top-4 z-[110] rounded-full border p-3 transition md:right-6 md:top-6 ${
+              isLight
+                ? "border-black/10 bg-white/70 text-[#17120f] hover:bg-[#17120f] hover:text-[#fff8ef]"
+                : "border-white/15 bg-white/5 text-white hover:bg-white hover:text-black"
             }`}
-          />
+            aria-label="Close gallery"
+          >
+            <X className="h-5 w-5" />
+          </button>
 
-          <div className={`mt-4 flex items-center justify-between text-sm ${isLight ? "text-black/60" : "text-white/60"}`}>
-            <div>
-              <div>{current.caption}</div>
-              <div className={`mt-1 ${isLight ? "text-[#17120f]" : "text-white"}`}>{current.title}</div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrev();
+            }}
+            className={`absolute left-4 top-1/2 z-[110] -translate-y-1/2 rounded-full border p-3 transition md:left-6 ${
+              isLight
+                ? "border-black/10 bg-white/70 text-[#17120f] hover:bg-[#17120f] hover:text-[#fff8ef]"
+                : "border-white/15 bg-white/5 text-white hover:bg-white hover:text-black"
+            }`}
+            aria-label="Previous image"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext();
+            }}
+            className={`absolute right-4 top-1/2 z-[110] -translate-y-1/2 rounded-full border p-3 transition md:right-6 ${
+              isLight
+                ? "border-black/10 bg-white/70 text-[#17120f] hover:bg-[#17120f] hover:text-[#fff8ef]"
+                : "border-white/15 bg-white/5 text-white hover:bg-white hover:text-black"
+            }`}
+            aria-label="Next image"
+          >
+            <ArrowRight className="h-5 w-5" />
+          </button>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="relative max-h-full max-w-6xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className={`absolute inset-0 rounded-[1.5rem] transition-opacity duration-200 ${
+                isImageReady ? "opacity-0" : "opacity-100"
+              } ${isLight ? "bg-[#eadbc8]" : "bg-white/10"}`}
+            />
+            {isVideo ? (
+              <video
+                src={current.video}
+                poster={getMediaPreview(current)}
+                controls
+                autoPlay
+                playsInline
+                preload="metadata"
+                className="max-h-[88vh] w-auto max-w-full rounded-[1.5rem] object-contain shadow-2xl"
+              />
+            ) : (
+              <img
+                src={getMediaPreview(current)}
+                alt={current.title}
+                className={`max-h-[88vh] w-auto max-w-full rounded-[1.5rem] object-contain shadow-2xl transition-opacity duration-200 ${
+                  isImageReady ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            )}
+
+            <div className={`mt-4 flex items-center justify-between text-sm ${isLight ? "text-black/60" : "text-white/60"}`}>
+              <div>
+                <div>{current.caption}</div>
+                <div className={`mt-1 ${isLight ? "text-[#17120f]" : "text-white"}`}>{current.title}</div>
+              </div>
+              <span>
+                {selectedIndex + 1} / {items.length}
+              </span>
             </div>
-            <span>
-              {selectedIndex + 1} / {items.length}
-            </span>
-          </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
     </AnimatePresence>
   );
 }
@@ -599,16 +728,17 @@ function HomePageView({
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.35, duration: 0.8 }}
-              onClick={() => onOpenImage(heroImage.image)}
+              onClick={() => onOpenImage(getMediaSource(heroImage))}
               className={`relative block w-full overflow-hidden rounded-[2rem] border p-3 text-left backdrop-blur transition ${shellClass} ${
                 isLight ? "hover:border-black/20" : "hover:border-white/20"
               }`}
             >
               <div className={`absolute -left-8 -top-8 h-24 w-24 rounded-full border ${isLight ? "border-black/10" : "border-white/10"}`} />
               <div className="relative overflow-hidden rounded-[1.4rem]">
-                <img
-                  src={heroImage.image}
+                <MediaThumbnail
+                  item={heroImage}
                   alt="Featured photograph"
+                  priority
                   className="h-[28rem] w-full object-cover transition duration-700 hover:scale-[1.03]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -631,14 +761,13 @@ function HomePageView({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.06 }}
-              onClick={() => onOpenImage(item.image)}
+              onClick={() => onOpenImage(getMediaSource(item))}
               className={`group relative overflow-hidden rounded-[2rem] border text-left ${shellClass}`}
             >
-              <img
-                src={item.image}
+              <MediaThumbnail
+                item={item}
                 alt={item.title}
-                loading="eager"
-                fetchPriority="high"
+                priority
                 className="h-[22rem] w-full object-cover transition duration-700 group-hover:scale-[1.04]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
@@ -680,7 +809,7 @@ function ArchivePageView({ filteredWork, isLight, shellClass, textMutedClass, on
         </div>
 
         <div className={`rounded-full border px-4 py-2 text-sm ${shellClass} ${textMutedClass}`}>
-          {filteredWork.length} images
+          {filteredWork.length} pieces
         </div>
       </div>
 
@@ -704,14 +833,12 @@ function ArchivePageView({ filteredWork, isLight, shellClass, textMutedClass, on
               transition={{ duration: 0.55, delay: index * 0.05 }}
               onMouseEnter={() => onHoverItem(item)}
               onMouseLeave={onLeaveHover}
-              onClick={() => onOpenImage(item.image)}
+              onClick={() => onOpenImage(getMediaSource(item))}
               className={`group relative overflow-hidden rounded-[2rem] border text-left ${shellClass} ${spans[index % spans.length]}`}
             >
-              <img
-                src={item.image}
+              <MediaThumbnail
+                item={item}
                 alt={item.title}
-                loading="eager"
-                fetchPriority="high"
                 className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent opacity-95" />
@@ -738,10 +865,10 @@ function StatementPageView({ isLight, shellClass, shellMutedClass, statCardClass
           type="button"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          onClick={() => onOpenImage(work[4].image)}
+          onClick={() => onOpenImage(getMediaSource(work[4]))}
           className={`overflow-hidden rounded-[2rem] border text-left ${shellClass}`}
         >
-          <img src={work[4].image} alt={work[4].title} className="h-full min-h-[32rem] w-full object-cover" />
+          <MediaThumbnail item={work[4]} alt={work[4].title} className="h-full min-h-[32rem] w-full object-cover" />
         </motion.button>
 
         <motion.div
@@ -752,7 +879,7 @@ function StatementPageView({ isLight, shellClass, shellMutedClass, statCardClass
           <div>
             <SectionLabel isLight={isLight}>Artist statement</SectionLabel>
             <h1 className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.05em] md:text-5xl">
-              TIME NEVER STOPS, I LIKE TO TRY
+              TIME DOESN&apos;T STOP. I&apos;D LIKE TO TRY.
             </h1>
             <p className={`mt-6 max-w-2xl text-base leading-8 ${isLight ? "text-black/70" : "text-white/70"}`}>
               I shoot moments that feel immediate, personal, and impossible to hold onto for long.
@@ -767,7 +894,7 @@ function StatementPageView({ isLight, shellClass, shellMutedClass, statCardClass
 
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {[
-              ["12", "Selected frames"],
+              [String(work.length).padStart(2, "0"), "Selected frames"],
               ["01", "Medium"],
               ["Infinity", "Ongoing archive"],
             ].map(([value, label]) => (
@@ -830,10 +957,10 @@ function ContactPageView({ isLight, shellMutedClass, contactCardClass }) {
 
 export default function App() {
   const containerRef = useRef(null);
+  const { pathname } = useLocation();
   const [hovered, setHovered] = useState(null);
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
-  const [bootDone, setBootDone] = useState(false);
+  const [bootDone, setBootDone] = useState(prefersReducedMotion);
   const [theme, setTheme] = useState(getInitialTheme);
 
   const filteredWork = useMemo(() => work, []);
@@ -842,18 +969,16 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Theme still applies for this visit; it just won't be remembered.
+    }
   }, [theme]);
 
   useEffect(() => {
-    const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
-    if (!finePointerQuery.matches) return undefined;
-
-    const onMove = (e) => setMouse({ x: e.clientX, y: e.clientY });
-    window.addEventListener("mousemove", onMove);
-
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
+    document.title = PAGE_TITLES[pathname] ?? PAGE_TITLES["/"];
+  }, [pathname]);
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -874,20 +999,27 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [selectedImageIndex, filteredWork.length]);
 
+  const isScrollLocked = !bootDone || selectedImageIndex !== null;
+
   useEffect(() => {
-    if (!bootDone) {
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "";
-      };
-    }
-    document.body.style.overflow = "";
-  }, [bootDone]);
+    if (!isScrollLocked) return undefined;
+
+    document.body.style.overflow = "hidden";
+    lenis?.stop();
+    return () => {
+      document.body.style.overflow = "";
+      lenis?.start();
+    };
+  }, [isScrollLocked]);
 
   useEffect(() => {
     work.forEach((item) => {
+      if (isVideoItem(item)) return;
+
+      // Warm the cache for the lightbox without competing with on-screen images.
       const image = new Image();
-      image.src = item.image;
+      image.fetchPriority = "low";
+      image.src = getMediaPreview(item);
 
       if (typeof image.decode === "function") {
         image.decode().catch(() => {});
@@ -895,8 +1027,8 @@ export default function App() {
     });
   }, []);
 
-  const openLightboxFromFiltered = (image) => {
-    const index = filteredWork.findIndex((item) => item.image === image);
+  const openLightboxFromFiltered = (mediaSource) => {
+    const index = filteredWork.findIndex((item) => getMediaSource(item) === mediaSource);
     if (index !== -1) setSelectedImageIndex(index);
   };
 
@@ -951,7 +1083,7 @@ export default function App() {
         }`}
       />
       <Grain isLight={isLight} />
-      <FloatingPreview item={hovered} mouse={mouse} isLight={isLight} />
+      <FloatingPreview item={hovered} isLight={isLight} />
       <Lightbox
         items={filteredWork}
         selectedIndex={selectedImageIndex}
