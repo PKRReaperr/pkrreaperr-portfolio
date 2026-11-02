@@ -1,8 +1,9 @@
 import { hasStore } from "./_lib/store.js";
 import { json, refreshAccessToken, secretsMatch } from "./_lib/instagram.js";
 
-// Called daily by the Vercel cron in vercel.json. Instagram tokens last 60 days;
+// Called daily by the Vercel cron in vercel.json. Instagram-login tokens last 60 days;
 // refreshing extends them, and the new token is saved to the Upstash store.
+// Unified login tokens don't expire, so for those this is a no-op.
 export async function GET(request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
@@ -19,8 +20,8 @@ export async function GET(request) {
   }
 
   try {
-    const { expiresAt } = await refreshAccessToken();
-    return json({ ok: true, expiresAt }, 200, { "Cache-Control": "no-store" });
+    const result = await refreshAccessToken();
+    return json({ ok: true, ...result }, 200, { "Cache-Control": "no-store" });
   } catch (error) {
     console.error(error.message);
     return json({ error: error.message }, 502, { "Cache-Control": "no-store" });

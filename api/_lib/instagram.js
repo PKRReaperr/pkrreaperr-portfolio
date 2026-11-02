@@ -1,7 +1,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { storeGet, storeSet } from "./store.js";
 
+// Tokens from "Instagram login" (start with "IG") use the Instagram host. Newer Meta apps only
+// offer "Unified login", whose tokens (start with "EAA") must use the Facebook host instead.
 const GRAPH_URL = "https://graph.instagram.com";
+const FACEBOOK_GRAPH_URL = "https://graph.facebook.com/v24.0";
 const TOKEN_KEY = "instagram:token";
 const FEED_KEY = "instagram:last-good-feed";
 const MAX_POSTS = 100;
@@ -42,6 +45,10 @@ function readEnvToken() {
   return token || undefined;
 }
 
+function isFacebookToken(token) {
+  return token.startsWith("EAA");
+}
+
 // Describes a token's shape for logs without revealing it.
 function describeToken(token) {
   const kind = token.startsWith("IG") ? "Instagram-style" : token.startsWith("EAA") ? "Facebook-style" : "unrecognized";
@@ -71,6 +78,11 @@ export async function refreshAccessToken() {
   if (!envToken) throw new Error("INSTAGRAM_ACCESS_TOKEN is not set");
 
   const currentToken = await getAccessToken();
+  // Unified login tokens are long-lived system-user tokens with no refresh endpoint.
+  if (isFacebookToken(currentToken)) {
+    return { expiresAt: null, note: "Unified login tokens don't expire; nothing to refresh" };
+  }
+
   const url = new URL(`${GRAPH_URL}/refresh_access_token`);
   url.searchParams.set("grant_type", "ig_refresh_token");
   url.searchParams.set("access_token", currentToken);
@@ -99,6 +111,47 @@ async function graphRequest(url) {
   }
 
   return data;
+}
+
+// Unified login tokens aren't tied to one Instagram account, so the media request needs
+// the account's ID: INSTAGRAM_USER_ID if set, otherwise the first account the token can see.
+async function getInstagramUserId(token) {
+  const configured = process.env.INSTAGRAM_USER_ID?.trim();
+  if (configured) return configured;
+
+  const lookups = [
+    { path: "/me/assigned_instagram_accounts", fields: "id,username", pick: (data) => data.data?.[0]?.id },
+    {
+      path: "/me/accounts",
+      fields: "instagram_business_account{id,username}",
+      pick: (data) => data.data?.find((page) => page.instagram_business_account)?.instagram_business_account.id,
+    },
+  ];
+  const problems = [];
+
+  for (const { path, fields, pick } of lookups) {
+    const url = new URL(`${FACEBOOK_GRAPH_URL}${path}`);
+    url.searchParams.set("fields", fields);
+    url.searchParams.set("access_token", token);
+
+    try {
+      const id = pick(await graphRequest(url));
+      if (id) {
+        console.log(`Using Instagram account ${id} (from ${path}); set INSTAGRAM_USER_ID to skip this lookup`);
+        return id;
+      }
+      problems.push(`${path}: no accounts`);
+    } catch (error) {
+      problems.push(`${path}: ${error.message}`);
+    }
+  }
+
+  throw new Error(`Couldn't find the Instagram account for this token; set INSTAGRAM_USER_ID. ${problems.join("; ")}`);
+}
+
+async function getMediaUrl(token) {
+  if (!isFacebookToken(token)) return new URL(`${GRAPH_URL}/me/media`);
+  return new URL(`${FACEBOOK_GRAPH_URL}/${await getInstagramUserId(token)}/media`);
 }
 
 function listFromEnv(name) {
@@ -170,7 +223,7 @@ export async function fetchInstagramWork() {
   const excluded = listFromEnv("INSTAGRAM_EXCLUDE").map((entry) => getShortcode(entry) ?? entry);
 
   const posts = [];
-  let url = new URL(`${GRAPH_URL}/me/media`);
+  let url = await getMediaUrl(token);
   url.searchParams.set("fields", MEDIA_FIELDS);
   url.searchParams.set("limit", "50");
   url.searchParams.set("access_token", token);
