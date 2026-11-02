@@ -206,8 +206,11 @@ function toWorkItem(post, hiddenTags) {
     image: optimizedImage(previewUrl),
     permalink: post.permalink,
     timestamp: post.timestamp,
+    mediaType: media.media_type,
   };
 
+  // Instagram omits media_url for some videos (e.g. Reels with licensed music); those
+  // fall back to showing their cover image.
   if (isVideo && media.media_url) {
     item.type = "video";
     item.video = media.media_url;

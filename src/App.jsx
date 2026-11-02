@@ -67,6 +67,15 @@ function getMediaPreview(item) {
   return item.poster ?? item.image;
 }
 
+// Video covers are often a dark first frame, so thumbnails seek to the middle of the clip.
+// The poster stays visible until that frame is ready (seeking hides it).
+function showMiddleFrame(event) {
+  const video = event.currentTarget;
+  if (Number.isFinite(video.duration) && video.duration > 0) {
+    video.currentTime = video.duration / 2;
+  }
+}
+
 function MediaThumbnail({ item, alt, className, priority = false }) {
   const isVideo = isVideoItem(item);
 
@@ -76,9 +85,11 @@ function MediaThumbnail({ item, alt, className, priority = false }) {
         <video
           src={item.video}
           poster={getMediaPreview(item)}
+          aria-label={alt}
           muted
           playsInline
           preload="metadata"
+          onLoadedMetadata={showMiddleFrame}
           className={className}
         />
       ) : (
