@@ -143,7 +143,8 @@ Persisted state:
 The frontend is static, with a small serverless backend on Vercel:
 
 - `api/instagram.js` fetches posts from the Instagram API (CDN-cached ~10 minutes)
-- `api/instagram-refresh.js` is a daily Vercel cron that renews the Instagram token; it requires `CRON_SECRET`
+- `api/instagram-refresh.js` is a daily Vercel cron that renews Instagram-login (`IG...`) tokens and does nothing for Unified login (`EAA...`) tokens, which never expire; it requires `CRON_SECRET`
+- `api/_lib/instagram.js` reads posts from `graph.instagram.com` for `IG` tokens, or from `graph.facebook.com/{INSTAGRAM_USER_ID}/media` for `EAA` tokens (the account ID is discovered automatically if not set)
 - `api/_lib/` holds shared helpers (files starting with `_` are not deployed as endpoints)
 - Upstash Redis (via Vercel) stores the refreshed token and a last-good copy of the feed
 - `vite.config.js` includes a small plugin that runs `api/` functions during `npm run dev`
