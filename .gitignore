@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets (Instagram token, etc.)
+.env
+.env.*
+!.env.example
+
+# Vercel CLI
+.vercel

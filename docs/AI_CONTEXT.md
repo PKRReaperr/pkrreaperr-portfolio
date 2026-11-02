@@ -18,7 +18,7 @@ The website is a highly art-directed React single-page application with route-ba
 - Statement
 - Contact
 
-The site emphasizes mood, typography, transitions, image presentation, and a curated gallery feel. It is not an ecommerce site, not a CMS-driven content system, and not a backend application.
+The site emphasizes mood, typography, transitions, image presentation, and a curated gallery feel. It is not an ecommerce site; its content comes from the Rayflics Instagram account.
 
 ## Design Ideology
 
@@ -110,20 +110,17 @@ Unknown routes redirect back to `/`.
 
 ## Data Model
 
-The photography dataset is currently hardcoded in `src/App.jsx` as an in-memory `work` array.
+The gallery is synced from Instagram. `src/useInstagramWork.js` fetches `/api/instagram` (newest post first) and the newest post becomes the Home page hero. If the feed can't be reached, the app falls back to the bundled `placeholderWork` array in `src/App.jsx`. Setup and behavior: [docs/INSTAGRAM_SETUP.md](</C:/Users/rayya/Desktop/apps/extra files/pkrreaperr-portfolio/pkrreaperr-landing-page/docs/INSTAGRAM_SETUP.md>).
 
 Each item includes:
 
 - `title`
-- `caption`
+- `caption` (a short tag line like `street / night`)
 - `year`
 - `image`
+- optionally `id`, `permalink`, `timestamp` (Instagram posts) and `type: "video"`, `video`, `poster`
 
-This means:
-
-- there is no CMS
-- there is no API request for content
-- content updates currently require code edits
+Content updates happen by posting on Instagram; no code edits are needed.
 
 ## State and Behavior
 
@@ -135,7 +132,7 @@ Important local state includes:
 - intro boot completion
 - hovered archive item
 - selected lightbox image index
-- mouse position for hover interactions
+- the loaded Instagram feed
 
 Persisted state:
 
@@ -143,28 +140,19 @@ Persisted state:
 
 ## Backend Structure
 
-There is effectively no custom backend.
+The frontend is static, with a small serverless backend on Vercel:
 
-This project does not currently include:
+- `api/instagram.js` fetches posts from the Instagram API (CDN-cached ~10 minutes)
+- `api/instagram-refresh.js` is a daily Vercel cron that renews the Instagram token; it requires `CRON_SECRET`
+- `api/_lib/` holds shared helpers (files starting with `_` are not deployed as endpoints)
+- Upstash Redis (via Vercel) stores the refreshed token and a last-good copy of the feed
+- `vite.config.js` includes a small plugin that runs `api/` functions during `npm run dev`
 
-- a Node/Express server
-- serverless API routes
-- a database
-- authentication
-- file uploads
-- admin tooling
-- order processing
-- CMS integration
+Secrets (`INSTAGRAM_ACCESS_TOKEN`, `CRON_SECRET`, Upstash keys) live only in Vercel environment variables or `.env.local`. Never expose them through `VITE_` variables.
 
-So if another AI is asked about the "backend", the correct answer is:
+There is still no database of our own, no authentication, no uploads, and no admin tooling.
 
-- this is a static frontend application
-- content is bundled at build time
-- there is no application backend to maintain
-
-The only externally connected runtime piece presently in the codebase is:
-
-- Vercel Speed Insights, for analytics/performance metrics collection
+Other external runtime pieces: Vercel Speed Insights and Vercel Web Analytics.
 
 ## Styling System
 
@@ -283,7 +271,7 @@ When working on this project, another AI should:
 2. Preserve the cinematic/editorial design language.
 3. Prefer incremental changes over broad rewrites.
 4. Keep motion tasteful and performant.
-5. Remember there is no backend, so "backend changes" usually mean either no-op or introducing new infrastructure.
+5. Remember the only backend is the Instagram feed in `api/`; anything else server-side means introducing new infrastructure.
 6. Validate with `npm run lint` and `npm run build` after meaningful edits.
 7. Be cautious around branch choice: `preview` for experimentation, `main` for accepted/live changes.
 
@@ -291,4 +279,4 @@ When working on this project, another AI should:
 
 If a smaller summary is needed, use this:
 
-`This is a React + Vite photography portfolio for Rayflics. The live app is mostly centralized in src/App.jsx, with global theming in src/index.css and bootstrapping in src/main.jsx. It is a frontend-only static site with no custom backend, no database, and no CMS. The design language is cinematic, premium, editorial, dark-forward, and motion-rich. It uses Framer Motion, Tailwind, Lenis, Lucide icons, and Vercel Speed Insights. Main routes are home, archive, statement, and contact. Another AI should preserve the art-directed look, treat App.jsx as the main source of truth, and validate changes with lint and build.`
+`This is a React + Vite photography portfolio for Rayflics. The live app is mostly centralized in src/App.jsx, with global theming in src/index.css and bootstrapping in src/main.jsx. It is a static site whose gallery is synced from Instagram through a small Vercel serverless function (api/instagram.js) with a daily token-refresh cron. The design language is cinematic, premium, editorial, dark-forward, and motion-rich. It uses Framer Motion, Tailwind, Lenis, Lucide icons, and Vercel Speed Insights. Main routes are home, archive, statement, and contact. Another AI should preserve the art-directed look, treat App.jsx as the main source of truth, and validate changes with lint and build.`

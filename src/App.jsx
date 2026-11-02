@@ -15,6 +15,7 @@ import {
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { lenis, prefersReducedMotion } from "./lenis";
+import { useInstagramWork } from "./useInstagramWork";
 
 import img1 from "./assets/326238254_875997890318220_6284310975885855932_n.jpg";
 import img2 from "./assets/620979117_17988771155763036_1148086386839386716_n.webp";
@@ -38,7 +39,8 @@ const PAGE_TITLES = {
   "/contact": "RAYFLICS - CONTACT",
 };
 
-const work = [
+// Shown only when the Instagram feed (/api/instagram) can't be reached.
+const placeholderWork = [
   { title: "Late Night Window", caption: "friends / night / city", year: "2024", image: img1 },
   { title: "Parking Lot After Rain", caption: "street / stillness", year: "2024", image: img2 },
   { title: "Corner Store Light", caption: "portrait / ambient", year: "2024", image: img3 },
@@ -116,19 +118,13 @@ function getInitialTheme() {
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
-function shuffleItems(items) {
-  const copy = [...items];
-
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-    [copy[index], copy[randomIndex]] = [copy[randomIndex], copy[index]];
-  }
-
-  return copy;
+function getItemKey(item, index) {
+  return item.id ?? `${item.image}-${index}`;
 }
 
+// Items arrive newest first, so the latest post becomes the featured hero.
 function createHomeLayout(items) {
-  const [heroImage, ...supportingImages] = shuffleItems(items).slice(0, 4);
+  const [heroImage, ...supportingImages] = items.slice(0, 4);
 
   return {
     heroImage,
@@ -570,9 +566,24 @@ function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
                 <div>{current.caption}</div>
                 <div className={`mt-1 ${isLight ? "text-[#17120f]" : "text-white"}`}>{current.title}</div>
               </div>
-              <span>
-                {selectedIndex + 1} / {items.length}
-              </span>
+              <div className="flex items-center gap-4">
+                {current.permalink && (
+                  <a
+                    href={current.permalink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`inline-flex items-center gap-1.5 transition ${
+                      isLight ? "hover:text-[#17120f]" : "hover:text-white"
+                    }`}
+                  >
+                    <Instagram className="h-4 w-4" />
+                    View post
+                  </a>
+                )}
+                <span>
+                  {selectedIndex + 1} / {items.length}
+                </span>
+              </div>
             </div>
           </motion.div>
         </motion.div>
@@ -671,6 +682,9 @@ function HomePageView({
 }) {
   const { heroImage, supportingImages } = homeLayout;
 
+  // The feed is still loading (only visible when the boot screen is skipped).
+  if (!heroImage) return <main className="min-h-screen" />;
+
   return (
     <main className="min-h-screen">
       <section className="relative flex min-h-screen items-center overflow-hidden px-5 pb-8 pt-24 md:px-8 md:pb-10 md:pt-28 lg:px-10 lg:pb-12">
@@ -737,11 +751,16 @@ function HomePageView({
               <div className="relative overflow-hidden rounded-[1.4rem]">
                 <MediaThumbnail
                   item={heroImage}
-                  alt="Featured photograph"
+                  alt={heroImage.title}
                   priority
                   className="h-[28rem] w-full object-cover transition duration-700 hover:scale-[1.03]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                {heroImage.permalink && (
+                  <div className="absolute right-4 top-4 rounded-full bg-black/60 px-3 py-2 text-[10px] uppercase tracking-[0.28em] text-white backdrop-blur">
+                    Latest post
+                  </div>
+                )}
                 <div className="absolute inset-x-0 bottom-0 p-5 text-white">
                   <p className="text-[10px] uppercase tracking-[0.32em] text-white/70">{heroImage.caption}</p>
                   <h2 className="mt-2 text-2xl font-medium">{heroImage.title}</h2>
@@ -756,7 +775,7 @@ function HomePageView({
         <div className="grid gap-4 lg:grid-cols-3">
           {supportingImages.map((item, index) => (
             <motion.button
-              key={`${item.image}-${index}`}
+              key={getItemKey(item, index)}
               type="button"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -827,7 +846,7 @@ function ArchivePageView({ filteredWork, isLight, shellClass, textMutedClass, on
           return (
             <motion.button
               type="button"
-              key={`${item.image}-${index}`}
+              key={getItemKey(item, index)}
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: index * 0.05 }}
@@ -857,19 +876,26 @@ function ArchivePageView({ filteredWork, isLight, shellClass, textMutedClass, on
   );
 }
 
-function StatementPageView({ isLight, shellClass, shellMutedClass, statCardClass, onOpenImage }) {
+function StatementPageView({ items, isLight, shellClass, shellMutedClass, statCardClass, onOpenImage }) {
+  // Keeps the original layout's fifth frame here, falling back to the newest post.
+  const featured = items[4] ?? items[0];
+
   return (
     <main className="mx-auto max-w-7xl px-5 pb-16 pt-28 md:px-8 lg:px-10">
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-        <motion.button
-          type="button"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          onClick={() => onOpenImage(getMediaSource(work[4]))}
-          className={`overflow-hidden rounded-[2rem] border text-left ${shellClass}`}
-        >
-          <MediaThumbnail item={work[4]} alt={work[4].title} className="h-full min-h-[32rem] w-full object-cover" />
-        </motion.button>
+        {featured ? (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => onOpenImage(getMediaSource(featured))}
+            className={`relative overflow-hidden rounded-[2rem] border text-left ${shellClass}`}
+          >
+            <MediaThumbnail item={featured} alt={featured.title} className="h-full min-h-[32rem] w-full object-cover" />
+          </motion.button>
+        ) : (
+          <div className={`min-h-[32rem] rounded-[2rem] border ${shellClass}`} />
+        )}
 
         <motion.div
           initial={{ opacity: 0, x: 20 }}
@@ -894,7 +920,7 @@ function StatementPageView({ isLight, shellClass, shellMutedClass, statCardClass
 
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {[
-              [String(work.length).padStart(2, "0"), "Selected frames"],
+              [String(items.length).padStart(2, "0"), "Selected frames"],
               ["01", "Medium"],
               ["Infinity", "Ongoing archive"],
             ].map(([value, label]) => (
@@ -963,9 +989,12 @@ export default function App() {
   const [bootDone, setBootDone] = useState(prefersReducedMotion);
   const [theme, setTheme] = useState(getInitialTheme);
 
-  const filteredWork = useMemo(() => work, []);
-  const homeLayout = useMemo(() => createHomeLayout(work), []);
+  const feed = useInstagramWork(placeholderWork);
+  const filteredWork = useMemo(() => feed.items ?? [], [feed.items]);
+  const homeLayout = useMemo(() => createHomeLayout(filteredWork), [filteredWork]);
   const isLight = theme === "light";
+  // The boot screen holds at "ready" until the feed has loaded, so the gallery never pops in.
+  const introDone = prefersReducedMotion || (bootDone && feed.items !== null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -999,7 +1028,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [selectedImageIndex, filteredWork.length]);
 
-  const isScrollLocked = !bootDone || selectedImageIndex !== null;
+  const isScrollLocked = !introDone || selectedImageIndex !== null;
 
   useEffect(() => {
     if (!isScrollLocked) return undefined;
@@ -1013,10 +1042,10 @@ export default function App() {
   }, [isScrollLocked]);
 
   useEffect(() => {
-    work.forEach((item) => {
+    // Warm the cache for the first screens of the lightbox without competing with on-screen images.
+    filteredWork.slice(0, 12).forEach((item) => {
       if (isVideoItem(item)) return;
 
-      // Warm the cache for the lightbox without competing with on-screen images.
       const image = new Image();
       image.fetchPriority = "low";
       image.src = getMediaPreview(item);
@@ -1025,7 +1054,7 @@ export default function App() {
         image.decode().catch(() => {});
       }
     });
-  }, []);
+  }, [filteredWork]);
 
   const openLightboxFromFiltered = (mediaSource) => {
     const index = filteredWork.findIndex((item) => getMediaSource(item) === mediaSource);
@@ -1073,7 +1102,7 @@ export default function App() {
 
   return (
     <div ref={containerRef} className={`theme-transition ${pageClass}`}>
-      <BootSequence done={bootDone} setDone={setBootDone} isLight={isLight} />
+      <BootSequence done={introDone} setDone={setBootDone} isLight={isLight} />
       <div
         aria-hidden="true"
         className={`pointer-events-none fixed inset-0 ${
@@ -1134,6 +1163,7 @@ export default function App() {
           path="/statement"
           element={
             <StatementPageView
+              items={filteredWork}
               isLight={isLight}
               shellClass={shellClass}
               shellMutedClass={shellMutedClass}
