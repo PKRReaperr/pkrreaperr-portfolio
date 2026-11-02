@@ -36,11 +36,23 @@ function hashToken(token) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+// Pasted tokens often pick up stray whitespace, line breaks, or surrounding quotes.
+function readEnvToken() {
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN?.trim().replace(/^["']+|["']+$/g, "").trim();
+  return token || undefined;
+}
+
+// Describes a token's shape for logs without revealing it.
+function describeToken(token) {
+  const kind = token.startsWith("IG") ? "Instagram-style" : token.startsWith("EAA") ? "Facebook-style" : "unrecognized";
+  return `${kind} token, ${token.length} chars`;
+}
+
 // The refresh cron stores renewed tokens. A stored token is only trusted while it was
 // derived from the current INSTAGRAM_ACCESS_TOKEN, so pasting a new token into Vercel
 // always takes effect even if an older refreshed one is still stored.
 export async function getAccessToken() {
-  const envToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+  const envToken = readEnvToken();
   const stored = await storeGet(TOKEN_KEY).catch(() => null);
 
   if (stored) {
@@ -55,7 +67,7 @@ export async function getAccessToken() {
 }
 
 export async function refreshAccessToken() {
-  const envToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+  const envToken = readEnvToken();
   if (!envToken) throw new Error("INSTAGRAM_ACCESS_TOKEN is not set");
 
   const currentToken = await getAccessToken();
@@ -81,7 +93,9 @@ async function graphRequest(url) {
   if (!response.ok || data.error) {
     // Instagram's error message never includes the token, so it's safe to surface.
     const message = data.error?.message ?? `HTTP ${response.status}`;
-    throw new Error(`Instagram API error: ${message}`);
+    const token = url.searchParams.get("access_token");
+    const hint = data.error?.type === "OAuthException" && token ? ` (${describeToken(token)})` : "";
+    throw new Error(`Instagram API error: ${message}${hint}`);
   }
 
   return data;
