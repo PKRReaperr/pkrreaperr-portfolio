@@ -548,7 +548,7 @@ function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className={`absolute inset-0 rounded-[1.5rem] transition-opacity duration-200 ${
+              className={`pointer-events-none absolute inset-0 rounded-[1.5rem] transition-opacity duration-200 ${
                 isImageReady ? "opacity-0" : "opacity-100"
               } ${isLight ? "bg-[#eadbc8]" : "bg-white/10"}`}
             />
@@ -560,13 +560,13 @@ function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
                 autoPlay
                 playsInline
                 preload="metadata"
-                className="max-h-[88vh] w-auto max-w-full rounded-[1.5rem] object-contain shadow-2xl"
+                className="max-h-[calc(100dvh-10rem)] w-auto max-w-full rounded-[1.5rem] object-contain shadow-2xl"
               />
             ) : (
               <img
                 src={getMediaPreview(current)}
                 alt={current.title}
-                className={`max-h-[88vh] w-auto max-w-full rounded-[1.5rem] object-contain shadow-2xl transition-opacity duration-200 ${
+                className={`max-h-[calc(100dvh-10rem)] w-auto max-w-full rounded-[1.5rem] object-contain shadow-2xl transition-opacity duration-200 ${
                   isImageReady ? "opacity-100" : "opacity-0"
                 }`}
               />

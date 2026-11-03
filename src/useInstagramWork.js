@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { applyVideoOverrides } from "./videoOverrides";
 
 const FEED_URL = "/api/instagram";
 const FEED_TIMEOUT_MS = 8000;
@@ -22,7 +23,7 @@ export function useInstagramWork(fallbackItems) {
         if (!Array.isArray(data.items) || data.items.length === 0) {
           throw new Error("Feed returned no posts");
         }
-        if (!cancelled) setFeed({ items: data.items, source: data.source ?? "live" });
+        if (!cancelled) setFeed({ items: applyVideoOverrides(data.items), source: data.source ?? "live" });
       })
       .catch(() => {
         if (!cancelled) setFeed({ items: fallbackItems, source: "placeholder" });

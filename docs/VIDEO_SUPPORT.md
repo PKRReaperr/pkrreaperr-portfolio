@@ -62,3 +62,22 @@ Video items can be added like this:
 - Archive, home, hover preview, statement image slot, and lightbox are video-aware.
 - Video cards show a small `video` badge.
 - Clicking a video opens it in the lightbox with native browser controls.
+
+## Your Own File for an Instagram Post
+
+Instagram's API sometimes leaves out the video file for a post (it happens with collab posts and Reels with licensed music). Those posts show only their cover image and can't play on the site.
+
+To make one play, host the video file yourself:
+
+1. Put the file in `public/videos/`, e.g. `public/videos/i-want-to-create-again.mp4`. Use `.mp4` (H.264), compressed for the web.
+2. Add it to `src/videoOverrides.js`, keyed by the post's shortcode from its link (`instagram.com/reel/<shortcode>/`):
+
+```js
+export const videoOverrides = {
+  DRrIUk4DlwU: { video: "/videos/i-want-to-create-again.mp4" },
+};
+```
+
+`poster` is optional. Without it, the thumbnail shows a frame from the middle of the video.
+
+Only host videos you have the rights to. Instagram's music licenses don't cover playback on your own site.
