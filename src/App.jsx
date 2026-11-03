@@ -629,9 +629,11 @@ function ThemeToggle({ theme, onToggle, isLight }) {
           isLight ? "translate-x-[calc(2.7rem-2px)] bg-[#17120f]" : "translate-x-0 bg-white"
         }`}
       />
-      <span className="relative z-10 flex w-full items-center justify-between px-1">
-        <Sun className={`h-3.5 w-3.5 ${isLight ? "text-[#fff8ef]" : "text-white/55"}`} />
-        <Moon className={`h-3.5 w-3.5 ${isLight ? "text-black/45" : "text-[#050505]"}`} />
+      {/* The icon under the knob contrasts with the knob; the other contrasts with the track.
+          px-[7px] centers each icon on the knob's resting spot. */}
+      <span className="relative z-10 flex w-full items-center justify-between px-[7px]">
+        <Sun className={`h-3.5 w-3.5 ${isLight ? "text-black/45" : "text-[#050505]"}`} />
+        <Moon className={`h-3.5 w-3.5 ${isLight ? "text-[#fff8ef]" : "text-white/55"}`} />
       </span>
       <span className="sr-only">Current theme: {theme}</span>
     </button>
