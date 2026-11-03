@@ -623,9 +623,10 @@ function ThemeToggle({ theme, onToggle, isLight }) {
           : "border-white/10 bg-white/[0.04] text-white"
       }`}
     >
+      {/* Light mode slides the knob the full track: 5.2rem width - 2px border - 2 x 0.375rem inset - 1.75rem knob. */}
       <span
-        className={`absolute left-1.5 top-1.5 h-7 w-7 rounded-full transition-transform duration-500 ${
-          isLight ? "translate-x-[2.1rem] bg-[#17120f]" : "translate-x-0 bg-white"
+        className={`absolute left-1.5 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full transition-transform duration-500 ${
+          isLight ? "translate-x-[calc(2.7rem-2px)] bg-[#17120f]" : "translate-x-0 bg-white"
         }`}
       />
       <span className="relative z-10 flex w-full items-center justify-between px-1">
