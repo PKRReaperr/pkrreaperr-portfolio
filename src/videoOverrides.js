@@ -4,7 +4,13 @@
 // Key: the post's shortcode, from its link: instagram.com/reel/<shortcode>/
 // Values are paths under public/, e.g. public/videos/clip.mp4 -> "/videos/clip.mp4".
 // "poster" is optional; without it the thumbnail shows a frame from the middle of the video.
-export const videoOverrides = {};
+export const videoOverrides = {
+  // "i want to create again" (collab Reel; Instagram withholds its video file)
+  DRrIUk4DlwU: {
+    video: "/videos/i-want-to-create-again.mp4",
+    poster: "/videos/i-want-to-create-again.jpg",
+  },
+};
 
 function getShortcode(permalink) {
   return permalink?.match(/instagram\.com\/(?:[^/]+\/)?(?:p|reel|tv)\/([^/?#]+)/i)?.[1] ?? null;
