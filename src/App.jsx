@@ -59,6 +59,11 @@ function isVideoItem(item) {
   return item?.type === "video" || Boolean(item?.video);
 }
 
+// Videos Instagram won't share the file for (e.g. licensed music) play in Instagram's embed.
+function isEmbedItem(item) {
+  return Boolean(item?.embedUrl);
+}
+
 function getMediaSource(item) {
   return isVideoItem(item) ? item.video : item.image;
 }
@@ -103,7 +108,7 @@ function MediaThumbnail({ item, alt, className, priority = false }) {
         />
       )}
 
-      {isVideo && (
+      {(isVideo || isEmbedItem(item)) && (
         <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/60 px-3 py-2 text-[10px] uppercase tracking-[0.28em] text-white backdrop-blur">
           <Play className="h-3 w-3 fill-white" />
           video
@@ -445,10 +450,11 @@ function FloatingPreview({ item, isLight }) {
 function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
   const current = items[selectedIndex];
   const [loadedImageSrc, setLoadedImageSrc] = useState(null);
+  const [loadedEmbedUrl, setLoadedEmbedUrl] = useState(null);
 
   useEffect(() => {
     if (!current) return undefined;
-    if (isVideoItem(current)) return undefined;
+    if (isVideoItem(current) || isEmbedItem(current)) return undefined;
 
     let cancelled = false;
     const image = new Image();
@@ -477,7 +483,10 @@ function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
   }, [current]);
 
   const isVideo = current ? isVideoItem(current) : false;
-  const isImageReady = isVideo || (current && loadedImageSrc === getMediaPreview(current));
+  const isEmbed = current ? isEmbedItem(current) : false;
+  const isImageReady = isEmbed
+    ? loadedEmbedUrl === current.embedUrl
+    : isVideo || (current && loadedImageSrc === getMediaPreview(current));
 
   // AnimatePresence must stay mounted while the lightbox closes, or the exit animation is skipped.
   return (
@@ -552,7 +561,19 @@ function Lightbox({ items, selectedIndex, onClose, onPrev, onNext, isLight }) {
                 isImageReady ? "opacity-0" : "opacity-100"
               } ${isLight ? "bg-[#eadbc8]" : "bg-white/10"}`}
             />
-            {isVideo ? (
+            {isEmbed ? (
+              <iframe
+                key={current.embedUrl}
+                src={current.embedUrl}
+                title={`${current.title} on Instagram`}
+                allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; fullscreen"
+                allowFullScreen
+                onLoad={() => setLoadedEmbedUrl(current.embedUrl)}
+                className={`block h-[min(84vh,760px)] w-[min(400px,calc(100vw-2rem))] rounded-[1.5rem] border-0 bg-white shadow-2xl transition-opacity duration-200 ${
+                  isImageReady ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            ) : isVideo ? (
               <video
                 src={current.video}
                 poster={getMediaPreview(current)}

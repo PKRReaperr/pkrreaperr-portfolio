@@ -165,6 +165,15 @@ function getShortcode(permalink) {
   return permalink?.match(/instagram\.com\/(?:[^/]+\/)?(?:p|reel|tv)\/([^/?#]+)/i)?.[1]?.toLowerCase() ?? null;
 }
 
+// Instagram's official embed player lives at the post's permalink + "embed/".
+function getEmbedUrl(permalink) {
+  if (!getShortcode(permalink)) return undefined;
+  const url = new URL(permalink);
+  url.pathname = `${url.pathname.replace(/\/?$/, "/")}embed/`;
+  url.search = "";
+  return url.toString();
+}
+
 // On Vercel, route images through its optimizer: it resizes them, caches them on our own
 // domain, and avoids depending on Instagram's expiring CDN links for every view.
 function optimizedImage(url) {
@@ -209,12 +218,15 @@ function toWorkItem(post, hiddenTags) {
     mediaType: media.media_type,
   };
 
-  // Instagram omits media_url for some videos (e.g. Reels with licensed music); those
-  // fall back to showing their cover image.
+  // Instagram omits media_url for some videos (e.g. Reels with licensed music), since the
+  // music license only covers playback inside Instagram. Those play in Instagram's own
+  // embedded player instead, and show their cover image as the thumbnail.
   if (isVideo && media.media_url) {
     item.type = "video";
     item.video = media.media_url;
     item.poster = item.image;
+  } else if (isVideo) {
+    item.embedUrl = getEmbedUrl(post.permalink);
   }
 
   return item;

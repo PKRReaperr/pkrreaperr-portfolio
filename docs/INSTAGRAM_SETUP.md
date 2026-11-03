@@ -16,7 +16,8 @@ Instagram API  →  /api/instagram (Vercel function, cached ~10 min)  →  the s
   - Title: the first line of the caption, without hashtags (shortened to 60 characters).
   - Tag line: up to three hashtags, e.g. `street / night / friends`.
   - Year: from the post date.
-  - Carousels show their first photo. Reels and videos use the site's video support.
+  - Carousels show their first photo. Reels and videos use the site's video support, and their thumbnail shows a frame from the middle of the clip.
+  - For some videos Instagram doesn't provide the video file (for example, Reels with licensed music, and possibly collab posts). Those show their cover image, and the lightbox opens them in Instagram's own embedded player (`/reel/<code>/embed/`). The CSP allows `frame-src https://www.instagram.com` for this.
 - Vercel's CDN caches the response for 10 minutes, so Instagram is called a few times an hour at most, however many people visit.
 - On Vercel, images go through Vercel's image optimizer (`/_vercel/image`). It resizes them to 1080px WebP and serves them from your own domain, because Instagram's own image links expire.
 - Every successful fetch is also saved to Upstash. If Instagram is down, the site serves that last good copy.
@@ -95,4 +96,5 @@ Changing any of these needs a redeploy, and the cached feed can take up to 10 mi
 - **New posts take up to ~10 minutes to appear.** Instagram has no "new post" notification for this API, so the site checks on a schedule (the cache length in `api/instagram.js`).
 - **Vercel image optimization** has a monthly quota on the free Hobby plan. A portfolio with up to 100 posts fits comfortably, but if you hit the limit, images will fail to optimize. Check **Usage** in Vercel if images break.
 - **Videos** play straight from Instagram's servers, because the image optimizer only handles images.
+- **Embedded videos** follow Instagram's rules. Some may only offer "Watch on Instagram" and open the post there instead of playing on the site.
 - **If the token ever stops working** (for example, you removed the app's access, or an `IG` token went 60+ days without the cron), generate a new one (step 3), replace `INSTAGRAM_ACCESS_TOKEN` in Vercel, and redeploy. The site automatically starts using the new token instead of the stored one.

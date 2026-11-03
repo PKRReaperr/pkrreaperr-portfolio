@@ -62,3 +62,5 @@ Video items can be added like this:
 - Archive, home, hover preview, statement image slot, and lightbox are video-aware.
 - Video cards show a small `video` badge.
 - Clicking a video opens it in the lightbox with native browser controls.
+- Video thumbnails show a frame from the middle of the clip, not the first frame.
+- Instagram videos without a video file (`embedUrl` instead of `video`) open in Instagram's embedded player in the lightbox.
